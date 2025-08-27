@@ -4,7 +4,6 @@ import java.util.Random;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
-import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
@@ -18,6 +17,7 @@ public class Main extends Application {
 	public static final int WINDOW_WIDTH = 300;
 	public static final int WINDOW_HEIGHT = 600;
 
+	@SuppressWarnings("incomplete-switch")
 	@Override
 	public void start(Stage primaryStage) {
 		Pane root = new Pane();
@@ -29,19 +29,19 @@ public class Main extends Application {
 		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
 		// create graphics
 		GraphicsContext gContext = canvas.getGraphicsContext2D();
-
 		root.getChildren().add(canvas);
 
 		Random random = new Random();
-		Tetromino currentPiece = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+		// Tetromino currentPiece = new
+		// Tetromino(random.nextInt(Tetromino.SHAPES.length)); //old
+		final Tetromino[] currentPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };// updated
 
 		// Game loop
 		final long[] lastUpdate = { 0 };
 		final double dropInterval = 0.5e9; // 0.5 seconds in nanoseconds
 
 		/*
-		 * AnimationTimer: calls handle(long new) ~ 60 fps. now is in nanoseconds;
-		 * compare it to throttle falling.
+		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
 		 * 
 		 * GraphicsContext: the drawing API for a Canvas. setFill sets fill color,
 		 * fillRect paints a solid rectangle. setStroke sets line color; strokeRect
@@ -56,22 +56,31 @@ public class Main extends Application {
 					return;
 				}
 
-				// move when valid move is available
+				// auto fall
 				if (now - lastUpdate[0] >= dropInterval) {
-					int newRow = currentPiece.getRow() + 1;
-					if (gameBoard.isValidPosition(currentPiece, newRow, currentPiece.getCol())) {
-						currentPiece.moveDown();
+					int newRow = currentPiece[0].getRow() + 1;
+					if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
+						currentPiece[0].moveDown();
+					} else {
+						// can't move down -> lock and spawn next
+						gameBoard.lockPiece(currentPiece[0]);
+						currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+
+						// if the new piece can't be placed -> temprary gam over (stop timer)
+						if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
+								currentPiece[0].getCol())) {
+							System.out.println("Game Over!");
+							stop();
+						}
 					}
 
-					// else: piece should lock in position, if no valid move
 					lastUpdate[0] = now;
 				}
 
-				// clear screen: clearRect(x,y,w,h): wipes the canvas so we can redraw this
-				// frame
+				// RENDER
 				gContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-				// Drawing the grid- strokeRect draws only the outline
+				// Drawing the grid lines - strokeRect draws only the outline
 				for (int r = 0; r < GameBoard.ROWS; r++) {
 					for (int c = 0; c < GameBoard.COLS; c++) {
 						gContext.setStroke(Color.GREY); // or Color.GRAY
@@ -79,17 +88,29 @@ public class Main extends Application {
 								GameBoard.BLOCK_SIZE);
 					}
 				}
+				
+				//draw settled blocks from the board
+				int[][] board = gameBoard.getGrid();
+				for (int r = 0; r < GameBoard.ROWS; r++) {
+					for (int c = 0; c < GameBoard.COLS; c++) {
+						int v = board[r][c];
+						if (v != 0) {
+							gContext.setFill(Tetromino.COLORS[v - 1]);
+							gContext.fillRect(c * GameBoard.BLOCK_SIZE, r * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE);
+						}
+					}
+				}
 
-				// render/draw the pieces
-				int[][] shape = currentPiece.getShape();
-				gContext.setFill(currentPiece.getColor());
+				// render/draw the current falling block
+				int[][] shape = currentPiece[0].getShape();
+				gContext.setFill(currentPiece[0].getColor());
 
 				for (int r = 0; r < shape.length; r++) {
 					for (int c = 0; c < shape[r].length; c++) {
 						if (shape[r][c] != 0) {
 							// fillRect(x, y, w, h): paints a filled rectangle at pixel coords
-							gContext.fillRect((currentPiece.getCol() + c) * GameBoard.BLOCK_SIZE,
-									(currentPiece.getRow() + r) * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE,
+							gContext.fillRect((currentPiece[0].getCol() + c) * GameBoard.BLOCK_SIZE,
+									(currentPiece[0].getRow() + r) * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE,
 									GameBoard.BLOCK_SIZE);
 						}
 					}
@@ -102,36 +123,36 @@ public class Main extends Application {
 		// controls
 		scene.setOnKeyPressed(event -> {
 			switch (event.getCode()) {
-				case LEFT -> {
-					int newCol = currentPiece.getCol() - 1;
-					if (gameBoard.isValidPosition(currentPiece, currentPiece.getRow(), newCol)) {
-						currentPiece.moveLeft();
-					}
+			case LEFT -> {
+				int newCol = currentPiece[0].getCol() - 1;
+				if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
+					currentPiece[0].moveLeft();
 				}
-	
-				case RIGHT -> {
-					int newCol = currentPiece.getCol() + 1;
-					if (gameBoard.isValidPosition(currentPiece, currentPiece.getRow(), newCol)) {
-						currentPiece.moveRight();
-					}
+			}
+
+			case RIGHT -> {
+				int newCol = currentPiece[0].getCol() + 1;
+				if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
+					currentPiece[0].moveRight();
 				}
-	
-				case DOWN -> {
-					int newRow = currentPiece.getRow() + 1;
-					if (gameBoard.isValidPosition(currentPiece, newRow, currentPiece.getCol())) {
-						currentPiece.moveDown();
-					}
+			}
+
+			case DOWN -> {
+				int newRow = currentPiece[0].getRow() + 1;
+				if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
+					currentPiece[0].moveDown();
 				}
-				case UP -> {
-					// rotate when valid
-					currentPiece.rotate();
-					if (!gameBoard.isValidPosition(currentPiece, currentPiece.getRow(), currentPiece.getCol())) {
-						//undo by rotating 3 times
-						currentPiece.rotate();
-						currentPiece.rotate();
-						currentPiece.rotate();
-					}
+			}
+			case UP -> {
+				// rotate when valid
+				currentPiece[0].rotate();
+				if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), currentPiece[0].getCol())) {
+					// undo by rotating 3 times
+					currentPiece[0].rotate();
+					currentPiece[0].rotate();
+					currentPiece[0].rotate();
 				}
+			}
 			}
 		});
 

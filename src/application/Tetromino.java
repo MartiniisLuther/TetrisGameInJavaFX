@@ -30,6 +30,7 @@ public class Tetromino {
 			Color.ORANGE };
 
 	private int[][] shape; // current shape matrix
+	private final int typeIndex; // which of the 7 shapes
 	private Color color; // color of current piece
 	private int row; // top-left row position
 	private int col; // top-left column position
@@ -38,6 +39,7 @@ public class Tetromino {
 	public Tetromino(int shapeIndex) {
 		// copy shape from SHAPES (to avoid changing the original)
 		this.shape = copyShape(SHAPES[shapeIndex]);
+		this.typeIndex = shapeIndex;
 		this.color = COLORS[shapeIndex];
 		this.row = 0; // spawn at top
 		this.col = GameBoard.COLS / 2 - shape[0].length / 2; // center horizontally
@@ -52,46 +54,23 @@ public class Tetromino {
 		return copy;
 	}
 
-	// getter for copyShape
-	public int[][] getShape() {
-		return shape;
-	}
-
-	// getter for color
-	public Color getColor() {
-		return color;
-	}
-
-	// get row
-	public int getRow() {
-		return row;
-	}
-
-	// get column
-	public int getCol() {
-		return col;
-	}
-
-	// move down
-	public void moveDown() {
-		row++;
-	}
-
-	// move left
-	public void moveLeft() {
-		col--;
-	}
-
-	// move right
-	public void moveRight() {
-		col++;
-	}
+	// getters
+	public int[][] getShape() { return shape; }
+	public Color getColor() { return color; }
+	public int getRow() { return row; }
+	public int getCol() { return col; }
+	public int getTypeIndex() { return typeIndex; }
+	
+//	movements 
+	public void moveDown() { row++; }
+	public void moveLeft() { col--; }
+	public void moveRight() { col++; }
 	
 	/**
 	 * Rotates the shape 90 degrees clockwise.
 	 * 
 	 * this works by: 
-	 * - Creating a new matrix with swapped dimensions (col count becomes row wount).
+	 * - Creating a new matrix with swapped dimensions (col count becomes row count).
 	 * - Copying each cell from old position [r][c] to new poaition [c][rows-1-r]
 	 */
 	

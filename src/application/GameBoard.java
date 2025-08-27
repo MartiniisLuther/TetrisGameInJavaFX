@@ -9,7 +9,9 @@ public class GameBoard {
 	// an array- 2D
 	// if 0 = empty; >0 = filled, where the different numbers can mean different
 	// colors
-	private int[][] grid = new int[ROWS][COLS];
+//	private int[][] grid = new int[ROWS][COLS]; //old one
+	private final int[][] grid = new int[ROWS][COLS];
+
 
 	// constructor for the GameBoard class
 	public GameBoard() {
@@ -22,9 +24,7 @@ public class GameBoard {
 	}
 
 	// another method that returns a grid array
-	public int[][] getGrid() {
-		return grid;
-	}
+	public int[][] getGrid() { return grid; }
 
 	// method to set cells
 	public void setCell(int row, int col, int value) {
@@ -32,8 +32,30 @@ public class GameBoard {
 			grid[row][col] = value;
 		}
 	}
+	
+	/**
+	 * Lock current piece into the grid
+	 */
+	public void lockPiece(Tetromino piece) {
+		int[][] shape = piece.getShape();
+		int type = piece.getTypeIndex() + 1; //store as 1, 2, ... 7
+		int row = piece.getRow();
+		int col = piece.getCol();
+		
+		for (int r = 0; r < shape.length; r ++) {
+			for (int c = 0; c < shape[r].length; c++) {
+				if (shape[r][c] != 0) {
+					int boardRow = row + r;
+					int boardCol = col + c;
+					if (boardRow >= 0 && boardRow < ROWS && boardCol >= 0 && boardCol < COLS) {
+						grid[boardRow][boardCol] = type;
+					}
+				}
+			}
+		}
+	}
 
-	// check position and add physics
+	// check collisions and bounds
 	public boolean isValidPosition(Tetromino piece, int newRow, int newCol) {
 		int[][] shape = piece.getShape();
 
@@ -44,19 +66,13 @@ public class GameBoard {
 					int boardCol = newCol + c;
 
 					// check walls
-					if (boardCol < 0 || boardCol >= COLS) {
-						return false;
-					}
+					if (boardCol < 0 || boardCol >= COLS) { return false; }
 
 					// check floor
-					if (boardRow >= ROWS) {
-						return false;
-					}
+					if (boardRow >= ROWS) { return false; }
 
 					// check collision with filled cells
-					if (boardRow >= 0 && grid[boardRow][boardCol] != 0) {
-						return false;
-					}
+					if (boardRow >= 0 && grid[boardRow][boardCol] != 0) { return false; }
 				}
 			}
 		}
