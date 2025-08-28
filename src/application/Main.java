@@ -1,5 +1,6 @@
 package application;
 
+import java.awt.Toolkit;
 import java.util.Random;
 
 import javafx.animation.AnimationTimer;
@@ -11,6 +12,7 @@ import javafx.stage.Stage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
 public class Main extends Application {
 
@@ -40,6 +42,12 @@ public class Main extends Application {
 		final long[] lastUpdate = { 0 };
 		final double dropInterval = 0.5e9; // 0.5 seconds in nanoseconds
 
+		// score counter
+		final int[] score = { 0 };
+
+		// game over flag
+		final boolean[] gameOver = { false };
+
 		/*
 		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
 		 * 
@@ -56,25 +64,41 @@ public class Main extends Application {
 					return;
 				}
 
-				// auto fall
-				if (now - lastUpdate[0] >= dropInterval) {
-					int newRow = currentPiece[0].getRow() + 1;
-					if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
-						currentPiece[0].moveDown();
-					} else {
-						// can't move down -> lock and spawn next
-						gameBoard.lockPiece(currentPiece[0]);
-						currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+				if (!gameOver[0]) {
+					// auto fall
+					if (now - lastUpdate[0] >= dropInterval) {
+						int newRow = currentPiece[0].getRow() + 1;
+						if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
+							currentPiece[0].moveDown();
+						} else {
+							// can't move down -> lock and spawn next
+							gameBoard.lockPiece(currentPiece[0]);
+							// should count the cleared lines of the fitted pieaces from the bottom
+							int cleared = gameBoard.clearFullLines();
 
-						// if the new piece can't be placed -> temprary gam over (stop timer)
-						if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
-								currentPiece[0].getCol())) {
-							System.out.println("Game Over!");
-							stop();
+							// add scores based on the lines cleared
+							if (cleared > 0) {
+								switch (cleared) {
+								case 1 -> score[0] += 100;
+								case 2 -> score[0] += 300;
+								case 3 -> score[0] += 500;
+								case 4 -> score[0] += 800;
+								}
+							}
+
+							currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+
+							// if the new piece can't be placed -> game over (& stop timer)
+							if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
+									currentPiece[0].getCol())) {
+								gameOver[0] = true;
+								// System.out.println("Game Over!");
+
+							}
 						}
-					}
 
-					lastUpdate[0] = now;
+						lastUpdate[0] = now;
+					}
 				}
 
 				// RENDER
@@ -88,17 +112,31 @@ public class Main extends Application {
 								GameBoard.BLOCK_SIZE);
 					}
 				}
-				
-				//draw settled blocks from the board
+
+				// draw settled blocks from the board
 				int[][] board = gameBoard.getGrid();
 				for (int r = 0; r < GameBoard.ROWS; r++) {
 					for (int c = 0; c < GameBoard.COLS; c++) {
 						int v = board[r][c];
 						if (v != 0) {
 							gContext.setFill(Tetromino.COLORS[v - 1]);
-							gContext.fillRect(c * GameBoard.BLOCK_SIZE, r * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE);
+							gContext.fillRect(c * GameBoard.BLOCK_SIZE, r * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE,
+									GameBoard.BLOCK_SIZE);
 						}
 					}
+				}
+
+				// draw the score
+				gContext.setFill(Color.BLACK);
+				gContext.setFont(new Font("Impact", 18));
+				gContext.fillText("Score: " + score[0], 10, 20);
+
+				// draw the game over screen
+				if (gameOver[0]) {
+					gContext.setFill(Color.RED);
+					gContext.setFont(new Font("Arial Black", 42));							
+					gContext.fillText("GAME OVER", GameBoard.COLS * GameBoard.BLOCK_SIZE / 2 - 100,
+							GameBoard.ROWS * GameBoard.BLOCK_SIZE / 2);
 				}
 
 				// render/draw the current falling block

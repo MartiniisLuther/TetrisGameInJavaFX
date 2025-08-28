@@ -78,5 +78,38 @@ public class GameBoard {
 		}
 		return true;
 	}
+	
+//	this method should clear Tetrominoes from the base when they've been fitted
+	public int clearFullLines() {
+		int cleared = 0;
+		
+		for (int r = ROWS -1; r >= 0; r--) {
+			boolean full = true;
+			for (int c = 0; c < COLS; c++) {
+				if (grid[r][c] == 0) {
+					full = false;
+					break;
+				}
+			}
+			
+			if (full) {
+				cleared++;
+				
+//				shift all the above rows downwards by one
+				for (int rr = r; rr > 0; rr--) {
+					System.arraycopy(grid[rr - 1], 0, grid[rr], 0, COLS);
+				}
+				
+//				clear top row
+				for (int c = 0; c < COLS; c++) {
+					grid[0][c] = 0;
+				}
+				
+				// re-check same row index, since they've been shifted down
+				r++;
+			}
+		}
+		return cleared;
+	}
 
 }
