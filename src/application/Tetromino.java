@@ -1,5 +1,7 @@
 package application;
 
+import java.util.Random;
+
 import javafx.scene.paint.Color;
 
 public class Tetromino {
@@ -26,8 +28,20 @@ public class Tetromino {
 			{ { 0, 0, 1 }, { 1, 1, 1 } } };
 
 	// matching colors for each shape
-	public static final Color[] COLORS = { Color.CYAN, Color.YELLOW, Color.PURPLE, Color.GREEN, Color.RED, Color.BLUE,
-			Color.ORANGE };
+	public static final Color[] COLORS = { Color.web("#00FFFF"), // cyan
+			Color.web("#FFFF00"), // yellow
+			Color.web("#800080"), // purple
+			Color.web("#00FF00"), // green
+			Color.web("#FF0000"), // red
+			Color.web("#0000FF"), // blue
+			Color.web("#FFA500"), // orange
+			Color.web("#FFC0CB"), // pink
+			Color.web("#8B4513"), // brown
+			Color.web("#ADD8E6"), // lightblue
+			Color.web("#90EE90"), // lightgreen
+			Color.web("#FF00FF"), // magenta
+			Color.web("#FF8C00") // dark orange
+	};
 
 	private int[][] shape; // current shape matrix
 	private final int typeIndex; // which of the 7 shapes
@@ -40,7 +54,11 @@ public class Tetromino {
 		// copy shape from SHAPES (to avoid changing the original)
 		this.shape = copyShape(SHAPES[shapeIndex]);
 		this.typeIndex = shapeIndex;
-		this.color = COLORS[shapeIndex];
+
+		// pick a random color from the palette
+		Random rnd = new Random();
+		this.color = COLORS[rnd.nextInt(COLORS.length)];
+
 		this.row = 0; // spawn at top
 		this.col = GameBoard.COLS / 2 - shape[0].length / 2; // center horizontally
 	}
@@ -55,30 +73,45 @@ public class Tetromino {
 	}
 
 	// getters
-	public int[][] getShape() { return shape; }
-	public Color getColor() { return color; }
-	public int getRow() { return row; }
-	public int getCol() { return col; }
-	public int getTypeIndex() { return typeIndex; }
-	
-//	movements 
-	public void moveDown() { row++; }
-	public void moveLeft() { col--; }
-	public void moveRight() { col++; }
-	
-	/**
-	 * Rotates the shape 90 degrees clockwise.
-	 * 
-	 * this works by: 
-	 * - Creating a new matrix with swapped dimensions (col count becomes row count).
-	 * - Copying each cell from old position [r][c] to new poaition [c][rows-1-r]
-	 */
-	
+	public int[][] getShape() {
+		return shape;
+	}
+
+	public Color getColor() {
+		return color;
+	}
+
+	public int getRow() {
+		return row;
+	}
+
+	public int getCol() {
+		return col;
+	}
+
+	public int getTypeIndex() {
+		return typeIndex;
+	}
+
+	// movements
+	public void moveDown() {
+		row++;
+	}
+
+	public void moveLeft() {
+		col--;
+	}
+
+	public void moveRight() {
+		col++;
+	}
+
+	// rotate 90° clockwise
 	public void rotate() {
 		int rows = shape.length;
 		int cols = shape[0].length;
 		int[][] rotated = new int[cols][rows];
-		
+
 		for (int r = 0; r < rows; r++) {
 			for (int c = 0; c < cols; c++) {
 				rotated[c][rows - 1 - r] = shape[r][c];

@@ -1,6 +1,5 @@
 package application;
 
-import java.awt.Toolkit;
 import java.util.Random;
 
 import javafx.animation.AnimationTimer;
@@ -13,40 +12,52 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 
 public class Main extends Application {
 
-	public static final int WINDOW_WIDTH = 300;
+	public static final int WINDOW_WIDTH = 700;
 	public static final int WINDOW_HEIGHT = 600;
+
+	// these attributes are for blinking animation
+	private long lastBlinkTime = 0;
+	private boolean showPrompt = true;
+	private static final long BLINK_INTERVAL = 500_000_000;
+
+	// pause
+	private boolean paused = false;
 
 	@SuppressWarnings("incomplete-switch")
 	@Override
 	public void start(Stage primaryStage) {
 		Pane root = new Pane();
+		root.setStyle("-fx-background-color: #111827"); // dark gray-blue
 		Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 		// instance of gameboard class and pass the attributes to the Canvas class
 		GameBoard gameBoard = new GameBoard();
 
-		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
+		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE + 150, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
 		// create graphics
 		GraphicsContext gContext = canvas.getGraphicsContext2D();
 		root.getChildren().add(canvas);
 
 		Random random = new Random();
-		// Tetromino currentPiece = new
-		// Tetromino(random.nextInt(Tetromino.SHAPES.length)); //old
-		final Tetromino[] currentPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };// updated
+
+		// hold current piece
+		final Tetromino[] currentPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
+		// hold next piece
+		final Tetromino[] nextPieceTetrominos = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
 
 		// Game loop
 		final long[] lastUpdate = { 0 };
-		final double dropInterval = 0.5e9; // 0.5 seconds in nanoseconds
+		// final double dropInterval = 0.5e9; // 0.5 seconds in nanoseconds
 
-		// score counter
-		final int[] score = { 0 };
-
-		// game over flag
-		final boolean[] gameOver = { false };
+		final int[] score = { 0 }; // score counter
+		final boolean[] gameOver = { false }; // game over flag
+		final int[] level = { 1 }; // level tracker
+		final int[] linesCleared = { 0 };
 
 		/*
 		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
@@ -64,18 +75,22 @@ public class Main extends Application {
 					return;
 				}
 
-				if (!gameOver[0]) {
-					// auto fall
-					if (now - lastUpdate[0] >= dropInterval) {
+				if (!gameOver[0] && !paused) { // if paused, block piece updates
+					// dynamic drop interval based on level
+					long currentInterval = Math.max(100_000_000, 500_000_000 - (level[0] - 1) * 50_000_000);
+
+					// auto fall bricks
+					if (now - lastUpdate[0] >= currentInterval) {
 						int newRow = currentPiece[0].getRow() + 1;
+						
 						if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
 							currentPiece[0].moveDown();
 						} else {
 							// can't move down -> lock and spawn next
 							gameBoard.lockPiece(currentPiece[0]);
+
 							// should count the cleared lines of the fitted pieaces from the bottom
 							int cleared = gameBoard.clearFullLines();
-
 							// add scores based on the lines cleared
 							if (cleared > 0) {
 								switch (cleared) {
@@ -83,6 +98,15 @@ public class Main extends Application {
 								case 2 -> score[0] += 300;
 								case 3 -> score[0] += 500;
 								case 4 -> score[0] += 800;
+								}
+
+								// track total lines
+								linesCleared[0] += cleared;
+
+								// level up every 10 lines
+								if (linesCleared[0] >= level[0] * 10) {
+									level[0]++;
+									lastUpdate[0] = now; // reset so new speed kicks in immediately
 								}
 							}
 
@@ -114,30 +138,24 @@ public class Main extends Application {
 				}
 
 				// draw settled blocks from the board
-				int[][] board = gameBoard.getGrid();
+				Color[][] board = gameBoard.getGrid();
 				for (int r = 0; r < GameBoard.ROWS; r++) {
 					for (int c = 0; c < GameBoard.COLS; c++) {
-						int v = board[r][c];
-						if (v != 0) {
-							gContext.setFill(Tetromino.COLORS[v - 1]);
+						Color v = board[r][c];
+						if (v != null) {
+							gContext.setFill(v);
 							gContext.fillRect(c * GameBoard.BLOCK_SIZE, r * GameBoard.BLOCK_SIZE, GameBoard.BLOCK_SIZE,
 									GameBoard.BLOCK_SIZE);
 						}
 					}
 				}
 
-				// draw the score
-				gContext.setFill(Color.BLACK);
+				// draw the score, level & lines cleared text
+				gContext.setFill(Color.YELLOW);
 				gContext.setFont(new Font("Impact", 18));
-				gContext.fillText("Score: " + score[0], 10, 20);
-
-				// draw the game over screen
-				if (gameOver[0]) {
-					gContext.setFill(Color.RED);
-					gContext.setFont(new Font("Arial Black", 42));							
-					gContext.fillText("GAME OVER", GameBoard.COLS * GameBoard.BLOCK_SIZE / 2 - 100,
-							GameBoard.ROWS * GameBoard.BLOCK_SIZE / 2);
-				}
+				gContext.fillText("Score: " + score[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 40);
+				gContext.fillText("Level: " + level[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 70);
+				gContext.fillText("Lines: " + linesCleared[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 100);
 
 				// render/draw the current falling block
 				int[][] shape = currentPiece[0].getShape();
@@ -153,6 +171,73 @@ public class Main extends Application {
 						}
 					}
 				}
+
+				// toggle prompt flag every BLINK_INTERVAL
+				if (now - lastBlinkTime > BLINK_INTERVAL) {
+					showPrompt = !showPrompt;
+					lastBlinkTime = now;
+				}
+
+				// pause overlay
+				if (paused && !gameOver[0]) {
+					gContext.setFill(Color.ORANGE);
+					gContext.setFont(Font.font("Arial Black", FontWeight.BOLD, 42));
+
+					String pauseMsgString = "GAME PAUSED";
+					Text textPauseText = new Text(pauseMsgString);
+					double textWidth = textPauseText.getLayoutBounds().getWidth();
+					double canvasWidth = GameBoard.COLS * GameBoard.BLOCK_SIZE;
+					double canvasHeight = GameBoard.ROWS * GameBoard.BLOCK_SIZE;
+					double xP = (canvasWidth - textWidth) / 2 - 100;
+					double yP = (canvasHeight / 2);
+
+					gContext.fillText(pauseMsgString, xP, yP);
+
+					// resume text, blinking
+					if (showPrompt) {
+						gContext.setFill(Color.DARKMAGENTA);
+						gContext.setFont(Font.font("Courier New", FontWeight.BOLD, 30));
+
+						String resumePString = "Press SPACE to Resume Game";
+						Text resumePText = new Text(resumePString);
+
+						resumePText.setFont(gContext.getFont());
+
+						double promptWidth = resumePText.getLayoutBounds().getWidth();
+						gContext.fillText(resumePString, (canvasWidth - promptWidth) / 2, yP + 40);
+					}
+				}
+
+				// draw the game over text
+				if (gameOver[0]) {
+					gContext.setFill(Color.DARKMAGENTA);
+					gContext.setFont(Font.font("Arial Black", FontWeight.BOLD, 42));
+
+					String msgString = "GAME OVER";
+					Text gameOverText = new Text(msgString);
+					double textWidth = gameOverText.getLayoutBounds().getWidth();
+					double canvasWidth = GameBoard.COLS * GameBoard.BLOCK_SIZE;
+					double canvasHeight = GameBoard.ROWS * GameBoard.BLOCK_SIZE;
+					double x = (canvasWidth - textWidth) / 2 - 100;
+					double y = canvasHeight / 2;
+
+					gContext.fillText(msgString, x, y);
+
+					// blinking prompt
+					if (showPrompt) {
+						gContext.setFill(Color.YELLOW);
+						gContext.setFont(Font.font("Courier New", FontWeight.BOLD, 30));
+
+						String prompt = "Press R to Restart";
+						Text promptText = new Text(prompt);
+
+						promptText.setFont(gContext.getFont());
+
+						double promptWidth = promptText.getLayoutBounds().getWidth();
+						gContext.fillText(prompt, (canvasWidth - promptWidth) / 2, y + 40);
+					}
+
+				}
 			}
 		};
 
@@ -161,36 +246,65 @@ public class Main extends Application {
 		// controls
 		scene.setOnKeyPressed(event -> {
 			switch (event.getCode()) {
-			case LEFT -> {
-				int newCol = currentPiece[0].getCol() - 1;
-				if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
-					currentPiece[0].moveLeft();
+			case LEFT, A -> {
+				if (!gameOver[0]) {
+					int newCol = currentPiece[0].getCol() - 1;
+					if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
+						currentPiece[0].moveLeft();
+					}
 				}
 			}
 
-			case RIGHT -> {
-				int newCol = currentPiece[0].getCol() + 1;
-				if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
-					currentPiece[0].moveRight();
+			case RIGHT, D -> {
+				if (!gameOver[0]) {
+					int newCol = currentPiece[0].getCol() + 1;
+					if (gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), newCol)) {
+						currentPiece[0].moveRight();
+					}
 				}
 			}
 
-			case DOWN -> {
-				int newRow = currentPiece[0].getRow() + 1;
-				if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
-					currentPiece[0].moveDown();
+			case DOWN, S -> {
+				if (!gameOver[0]) {
+					int newRow = currentPiece[0].getRow() + 1;
+					if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
+						currentPiece[0].moveDown();
+					}
 				}
 			}
-			case UP -> {
-				// rotate when valid
-				currentPiece[0].rotate();
-				if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), currentPiece[0].getCol())) {
-					// undo by rotating 3 times
+
+			case UP, W -> {
+				// rotate piece when valid move available
+				if (!gameOver[0]) {
 					currentPiece[0].rotate();
-					currentPiece[0].rotate();
-					currentPiece[0].rotate();
+					if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
+							currentPiece[0].getCol())) {
+						// undo by rotating 3 times
+						currentPiece[0].rotate();
+						currentPiece[0].rotate();
+						currentPiece[0].rotate();
+					}
 				}
 			}
+
+			// restart game
+			case R -> {
+				if (gameOver[0]) {
+					gameBoard.clearGame();
+					score[0] = 0;
+					currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+					lastUpdate[0] = 0;
+					gameOver[0] = false;
+				}
+			}
+
+			// pause resume game
+			case P, SPACE -> {
+				if (!gameOver[0]) {
+					paused = !paused; // toggle pause/resume
+				}
+			}
+
 			}
 		});
 
