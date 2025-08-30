@@ -17,10 +17,10 @@ import javafx.scene.text.Text;
 
 public class Main extends Application {
 
-	public static final int WINDOW_WIDTH = 700;
+	public static final int WINDOW_WIDTH = 850;
 	public static final int WINDOW_HEIGHT = 600;
 
-	// these attributes are for blinking animation
+	// attributes for blinking animation
 	private long lastBlinkTime = 0;
 	private boolean showPrompt = true;
 	private static final long BLINK_INTERVAL = 500_000_000;
@@ -38,7 +38,7 @@ public class Main extends Application {
 		// instance of gameboard class and pass the attributes to the Canvas class
 		GameBoard gameBoard = new GameBoard();
 
-		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE + 150, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
+		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE + 180, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
 		// create graphics
 		GraphicsContext gContext = canvas.getGraphicsContext2D();
 		root.getChildren().add(canvas);
@@ -48,7 +48,7 @@ public class Main extends Application {
 		// hold current piece
 		final Tetromino[] currentPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
 		// hold next piece
-		final Tetromino[] nextPieceTetrominos = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
+		final Tetromino[] nextPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
 
 		// Game loop
 		final long[] lastUpdate = { 0 };
@@ -58,6 +58,10 @@ public class Main extends Application {
 		final boolean[] gameOver = { false }; // game over flag
 		final int[] level = { 1 }; // level tracker
 		final int[] linesCleared = { 0 };
+
+		// hold piece to allow switching
+		final Tetromino[] holdPiece = { null };
+		final boolean[] holdUsedPiece = { false }; // to prevent multiple holds per piece
 
 		/*
 		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
@@ -82,7 +86,7 @@ public class Main extends Application {
 					// auto fall bricks
 					if (now - lastUpdate[0] >= currentInterval) {
 						int newRow = currentPiece[0].getRow() + 1;
-						
+
 						if (gameBoard.isValidPosition(currentPiece[0], newRow, currentPiece[0].getCol())) {
 							currentPiece[0].moveDown();
 						} else {
@@ -106,18 +110,18 @@ public class Main extends Application {
 								// level up every 10 lines
 								if (linesCleared[0] >= level[0] * 10) {
 									level[0]++;
-									lastUpdate[0] = now; // reset so new speed kicks in immediately
+									lastUpdate[0] = now - currentInterval; // new speed kicks in immediately
 								}
 							}
-
-							currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
-
-							// if the new piece can't be placed -> game over (& stop timer)
+							
+							// spawn new Tetromino logik
+							holdUsedPiece[0] = false; // allow hold again after new piece spawns
+							currentPiece[0] = nextPiece[0];
+							nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+							// checkpoint
 							if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
 									currentPiece[0].getCol())) {
 								gameOver[0] = true;
-								// System.out.println("Game Over!");
-
 							}
 						}
 
@@ -150,12 +154,61 @@ public class Main extends Application {
 					}
 				}
 
-				// draw the score, level & lines cleared text
+				// draw the SCORE, LEVEL & LINES CLEARED text
 				gContext.setFill(Color.YELLOW);
-				gContext.setFont(new Font("Impact", 18));
+				gContext.setFont(new Font("Impact", 20));
 				gContext.fillText("Score: " + score[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 40);
 				gContext.fillText("Level: " + level[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 70);
 				gContext.fillText("Lines: " + linesCleared[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 100);
+
+				// NEXT PIECE PREVIEW
+				gContext.setFill(Color.ANTIQUEWHITE);
+				gContext.setFont(new Font("Impact", 20));
+				gContext.fillText("Next Tetromino: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 150);
+
+				// Draw the next piece centered in 4x4 grid
+				int[][] nextTetrominoShape = nextPiece[0].getShape();
+				Color nextColor = nextPiece[0].getColor();
+
+				double previewX = GameBoard.COLS * GameBoard.BLOCK_SIZE + 40;
+				double previewY = 180;
+
+				gContext.setFill(nextColor);
+
+				for (int r = 0; r < nextTetrominoShape.length; r++) {
+					for (int c = 0; c < nextTetrominoShape[r].length; c++) {
+						if (nextTetrominoShape[r][c] != 0) {
+							gContext.fillRect(previewX + c * GameBoard.BLOCK_SIZE * 0.8, // scaled down to 80%
+									previewY + r * GameBoard.BLOCK_SIZE * 0.8, GameBoard.BLOCK_SIZE * 0.8,
+									GameBoard.BLOCK_SIZE * 0.8);
+						}
+					}
+				}
+
+				// HOLD PIECE
+				gContext.setFill(Color.ANTIQUEWHITE);
+				gContext.setFont(new Font("Impact", 20));
+				gContext.fillText("C: swap Tetrominos!", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 260);
+
+				if (holdPiece[0] != null) {
+					int[][] holdShape = holdPiece[0].getShape();
+					Color holdColor = holdPiece[0].getColor();
+
+					double holdX = GameBoard.COLS * GameBoard.BLOCK_SIZE + 40;
+					double holdY = 280;
+
+					gContext.setFill(holdColor);
+
+					for (int r = 0; r < holdShape.length; r++) {
+						for (int c = 0; c < holdShape[r].length; c++) {
+							if (holdShape[r][c] != 0) {
+								gContext.fillRect(holdX + c * GameBoard.BLOCK_SIZE * 0.8,
+										holdY + r * GameBoard.BLOCK_SIZE * 0.8, GameBoard.BLOCK_SIZE * 0.8,
+										GameBoard.BLOCK_SIZE * 0.8);
+							}
+						}
+					}
+				}
 
 				// render/draw the current falling block
 				int[][] shape = currentPiece[0].getShape();
@@ -255,6 +308,7 @@ public class Main extends Application {
 				}
 			}
 
+			// move/shift right
 			case RIGHT, D -> {
 				if (!gameOver[0]) {
 					int newCol = currentPiece[0].getCol() + 1;
@@ -264,6 +318,7 @@ public class Main extends Application {
 				}
 			}
 
+			// move down
 			case DOWN, S -> {
 				if (!gameOver[0]) {
 					int newRow = currentPiece[0].getRow() + 1;
@@ -273,8 +328,8 @@ public class Main extends Application {
 				}
 			}
 
+			// rotate piece when valid move available
 			case UP, W -> {
-				// rotate piece when valid move available
 				if (!gameOver[0]) {
 					currentPiece[0].rotate();
 					if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
@@ -303,6 +358,29 @@ public class Main extends Application {
 				if (!gameOver[0]) {
 					paused = !paused; // toggle pause/resume
 				}
+			}
+
+			// switch the next Tetromino
+			case C -> {
+				if (!gameOver[0] && !paused && !holdUsedPiece[0]) {
+					if (holdPiece[0] == null) {
+						// first hold: move current to hold, bring in next
+						holdPiece[0] = currentPiece[0];
+						currentPiece[0] = nextPiece[0];
+						nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+					} else {
+						// swap the current piece with that in hold
+						Tetromino tempTetromino = currentPiece[0];
+						currentPiece[0] = holdPiece[0];
+						holdPiece[0] = tempTetromino;
+					}
+				}
+
+				// reset position so that swapped-in piece drops from the top
+				currentPiece[0].resetPosition();
+				
+//				prevent multiple holds for this turn
+				holdUsedPiece[0] = true;
 			}
 
 			}

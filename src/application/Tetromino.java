@@ -119,4 +119,10 @@ public class Tetromino {
 		}
 		shape = rotated;
 	}
+	
+	 //reset position (row/col) for the swapping tetromino
+	public void resetPosition() {
+		this.row = 0;
+		this.col = GameBoard.COLS / 2 - 2; //center the spawn
+	}
 }
