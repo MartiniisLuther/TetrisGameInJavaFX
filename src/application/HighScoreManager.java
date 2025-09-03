@@ -20,23 +20,23 @@ public class HighScoreManager {
 		try (BufferedReader bReader = new BufferedReader(new FileReader(FILE_NAME))) {
 			String lineString;
 			while ((lineString = bReader.readLine()) != null) {
-				try {
-					gameScores.add(Integer.parseInt(lineString.trim()));
-				} catch (NumberFormatException ignored) {
+				lineString = lineString.trim();
+				if (!lineString.isEmpty()) {
+					gameScores.add(Integer.parseInt(lineString));
 				}
 			}
 		} catch (IOException e) {
 			// no scores yet
 		}
-		gameScores.sort(Comparator.reverseOrder());
+		gameScores.sort(Collections.reverseOrder());
 	}
 
 	// saveScores method
 	private void saveScores() {
-		try (BufferedWriter bWriter = new BufferedWriter(new FileWriter(FILE_NAME, true))) {
-			// append only the latest scores
-			bWriter.write(String.valueOf(gameScores.get(gameScores.size() - 1)));
-			bWriter.newLine();
+		try (BufferedWriter bWriter = new BufferedWriter(new FileWriter(FILE_NAME))) {
+			for (int score : gameScores) {
+				bWriter.write(score + "\n");
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

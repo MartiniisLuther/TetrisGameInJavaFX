@@ -394,13 +394,32 @@ public class Main extends Application {
 			// restart game
 			case R -> {
 				if (gameOver[0]) {
+					//clear board & gameplay state
 					gameBoard.clearGame();
 					score[0] = 0;
 					linesCleared[0] = 0;
+					level[0] = 1;
+					
+//					reset game pieces
 					currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+					nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+					
+					//timing + flags 
 					lastUpdate[0] = 0;
 					gameOver[0] = false;
-					highScoreSaved[0] = true;
+					paused = false;
+					
+					// HOLD for switching pieces needs reset
+					holdPiece[0] = null;
+					holdUsedPiece[0] = false;
+					
+					//highscore & related message
+					highScoreSaved[0] = false; //allow saving on next run
+					showCongrats[0] = false;
+					
+					//reset blink timer
+					lastBlinkTime = 0;
+					showPrompt = true;
 				}
 			}
 
