@@ -1,5 +1,6 @@
 package application;
 
+import java.util.List;
 import java.util.Random;
 
 import javafx.animation.AnimationTimer;
@@ -17,7 +18,7 @@ import javafx.scene.text.Text;
 
 public class Main extends Application {
 
-	public static final int WINDOW_WIDTH = 850;
+	public static final int WINDOW_WIDTH = 700;
 	public static final int WINDOW_HEIGHT = 600;
 
 	// attributes for blinking animation
@@ -27,6 +28,9 @@ public class Main extends Application {
 
 	// pause
 	private boolean paused = false;
+
+	// highscore manager
+	HighScoreManager highScoreManager = new HighScoreManager();
 
 	@SuppressWarnings("incomplete-switch")
 	@Override
@@ -62,6 +66,10 @@ public class Main extends Application {
 		// hold piece to allow switching
 		final Tetromino[] holdPiece = { null };
 		final boolean[] holdUsedPiece = { false }; // to prevent multiple holds per piece
+
+		// to monitor highscores
+		final boolean[] highScoreSaved = { false };
+		final boolean[] showCongrats = { false };
 
 		/*
 		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
@@ -113,15 +121,29 @@ public class Main extends Application {
 									lastUpdate[0] = now - currentInterval; // new speed kicks in immediately
 								}
 							}
-							
+
 							// spawn new Tetromino logik
 							holdUsedPiece[0] = false; // allow hold again after new piece spawns
 							currentPiece[0] = nextPiece[0];
 							nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+
 							// checkpoint
 							if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(),
 									currentPiece[0].getCol())) {
 								gameOver[0] = true;
+
+								// do highscore
+								if (!highScoreSaved[0]) {
+									int currentHighest = highScoreManager.getTopScores().isEmpty() ? 0
+											: highScoreManager.getTopScores().get(0);
+									if (score[0] > currentHighest) {
+										// draw the message
+										showCongrats[0] = true;
+									}
+//									add score to the list
+									highScoreManager.addScores(score[0]);
+									highScoreSaved[0] = true;
+								}
 							}
 						}
 
@@ -159,7 +181,18 @@ public class Main extends Application {
 				gContext.setFont(new Font("Impact", 20));
 				gContext.fillText("Score: " + score[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 40);
 				gContext.fillText("Level: " + level[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 70);
-				gContext.fillText("Lines: " + linesCleared[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 100);
+				gContext.fillText("Lines Cleared: " + linesCleared[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 100);
+
+				// draw the HIGHSCORE list
+				gContext.setFill(Color.GOLDENROD);
+				gContext.setFont(new Font("Impact", 20));
+				gContext.fillText("High Scores: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 380);
+
+				List<Integer> highScores = highScoreManager.getTopScores();
+				for (int i = 0; i < 5; i++) {
+					int value = (i < highScores.size() ? highScores.get(i) : 0);
+					gContext.fillText((i + 1) + ". " + value, GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 410 + i * 20);
+				}
 
 				// NEXT PIECE PREVIEW
 				gContext.setFill(Color.ANTIQUEWHITE);
@@ -185,7 +218,7 @@ public class Main extends Application {
 					}
 				}
 
-				// HOLD PIECE
+				// HOLD PIECE - to allow switching to a different piece
 				gContext.setFill(Color.ANTIQUEWHITE);
 				gContext.setFont(new Font("Impact", 20));
 				gContext.fillText("C: swap Tetrominos!", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 260);
@@ -231,7 +264,7 @@ public class Main extends Application {
 					lastBlinkTime = now;
 				}
 
-				// pause overlay
+				// PAUSE overlay
 				if (paused && !gameOver[0]) {
 					gContext.setFill(Color.ORANGE);
 					gContext.setFont(Font.font("Arial Black", FontWeight.BOLD, 42));
@@ -251,7 +284,7 @@ public class Main extends Application {
 						gContext.setFill(Color.DARKMAGENTA);
 						gContext.setFont(Font.font("Courier New", FontWeight.BOLD, 30));
 
-						String resumePString = "Press SPACE to Resume Game";
+						String resumePString = "SPACE to Resume Game";
 						Text resumePText = new Text(resumePString);
 
 						resumePText.setFont(gContext.getFont());
@@ -261,12 +294,13 @@ public class Main extends Application {
 					}
 				}
 
-				// draw the game over text
+				// draw the GAME OVER text
 				if (gameOver[0]) {
+					// game over
 					gContext.setFill(Color.DARKMAGENTA);
 					gContext.setFont(Font.font("Arial Black", FontWeight.BOLD, 42));
 
-					String msgString = "GAME OVER";
+					String msgString = "GAME OVER!";
 					Text gameOverText = new Text(msgString);
 					double textWidth = gameOverText.getLayoutBounds().getWidth();
 					double canvasWidth = GameBoard.COLS * GameBoard.BLOCK_SIZE;
@@ -287,9 +321,24 @@ public class Main extends Application {
 						promptText.setFont(gContext.getFont());
 
 						double promptWidth = promptText.getLayoutBounds().getWidth();
-						gContext.fillText(prompt, (canvasWidth - promptWidth) / 2, y + 40);
-					}
+						gContext.fillText(prompt, (canvasWidth - promptWidth) / 2, y + 100);
 
+						// show congrats message
+						if (showCongrats[0]) {
+							gContext.setFill(Color.SNOW);
+							gContext.setFont(Font.font("Impact", FontWeight.BOLD, 28));
+
+							String congratsMsg = "GAME MASTER! - NEW HIGH!";
+							Text congratsText = new Text(congratsMsg);
+							congratsText.setFont(gContext.getFont());
+
+							double msgWidth = congratsText.getLayoutBounds().getWidth();
+							gContext.fillText(congratsMsg, (canvasWidth - msgWidth) / 2, canvasHeight / 2 - 100);
+							
+
+						}
+					}
+					
 				}
 			}
 		};
@@ -347,9 +396,11 @@ public class Main extends Application {
 				if (gameOver[0]) {
 					gameBoard.clearGame();
 					score[0] = 0;
+					linesCleared[0] = 0;
 					currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
 					lastUpdate[0] = 0;
 					gameOver[0] = false;
+					highScoreSaved[0] = true;
 				}
 			}
 
@@ -378,8 +429,8 @@ public class Main extends Application {
 
 				// reset position so that swapped-in piece drops from the top
 				currentPiece[0].resetPosition();
-				
-//				prevent multiple holds for this turn
+
+				// prevent multiple holds for this turn
 				holdUsedPiece[0] = true;
 			}
 

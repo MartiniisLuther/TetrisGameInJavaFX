@@ -6,7 +6,7 @@ import javafx.scene.paint.Color;
 
 public class GameBoard {
 	// some attributes for the game
-	public static final int COLS = 20; // width in blocks
+	public static final int COLS = 15; // width in blocks
 	public static final int ROWS = 20; // height in blocks
 	public static final int BLOCK_SIZE = 30; // pixel size of each block
 
