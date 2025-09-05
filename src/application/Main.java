@@ -19,7 +19,7 @@ import javafx.scene.text.Text;
 public class Main extends Application {
 
 	public static final int WINDOW_WIDTH = 700;
-	public static final int WINDOW_HEIGHT = 600;
+	public static final int WINDOW_HEIGHT = 700;
 
 	// attributes for blinking animation
 	private long lastBlinkTime = 0;
@@ -28,9 +28,91 @@ public class Main extends Application {
 
 	// pause
 	private boolean paused = false;
+	
+	private GameBoard gameBoard;
+	
+    // --- GAME STATE fields ---
+    private final int[] score = {0};
+    private final int[] linesCleared = {0};
+    private final int[] level = {1};
+    private final boolean[] gameOver = {false};
+    private final boolean[] holdUsedPiece = {false};
+    private final boolean[] highScoreSaved = {false};
+    private final boolean[] showCongrats = {false};
 
-	// highscore manager
-	HighScoreManager highScoreManager = new HighScoreManager();
+    //pieces
+    private final Tetromino[] currentPiece = {null};
+    private final Tetromino[] nextPiece = {null};
+    private final Tetromino[] holdPiece = {null};
+    
+    //managers
+    private final SoundManager soundManager = new SoundManager();
+    private final HighScoreManager highScoreManager = new HighScoreManager();
+    
+	private final Random random = new Random();
+
+	
+	// --- HARD DROP method (nested method) ---
+    private void hardDrop(Tetromino piece) {
+        // move piece down until blocked
+        while (gameBoard.isValidPosition(piece, piece.getRow() + 1, piece.getCol())) {
+            piece.moveDown();
+        }
+
+        // lock the piece immediately
+        gameBoard.lockPiece(piece);
+        
+        //play harddrop sound
+        soundManager.playHardDropSound();
+
+        // clear lines
+        int cleared = gameBoard.clearFullLines();
+        if (cleared > 0) {
+            switch (cleared) {
+                case 1 -> score[0] += 100;
+                case 2 -> score[0] += 300;
+                case 3 -> score[0] += 500;
+                case 4 -> score[0] += 800;
+            }
+
+            linesCleared[0] += cleared;
+            soundManager.playLineClearSound();
+
+            // level up after 10 lines
+            if (linesCleared[0] >= level[0] * 10) {
+                level[0]++;
+                soundManager.playLevelUpSound();
+            }
+        }
+
+        // reset hold usage
+        holdUsedPiece[0] = false;
+
+        // spawn next piece
+        currentPiece[0] = nextPiece[0];
+        nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+
+        // check game over
+        if (!gameBoard.isValidPosition(currentPiece[0], currentPiece[0].getRow(), currentPiece[0].getCol())) {
+            gameOver[0] = true;
+
+            if (!highScoreSaved[0]) {
+                int currentHighest = highScoreManager.getTopScores().isEmpty() ? 0
+                        : highScoreManager.getTopScores().get(0);
+
+                if (score[0] > currentHighest) {
+                    showCongrats[0] = true;
+                    soundManager.playHighScoreSound();
+                } else {
+                    soundManager.playGameOverSound();
+                }
+
+                soundManager.stopMusic();
+                highScoreManager.addScores(score[0]);
+                highScoreSaved[0] = true;
+            }
+        }
+    }
 
 	@SuppressWarnings("incomplete-switch")
 	@Override
@@ -39,37 +121,21 @@ public class Main extends Application {
 		root.setStyle("-fx-background-color: #111827"); // dark gray-blue
 		Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-		// instance of gameboard class and pass the attributes to the Canvas class
-		GameBoard gameBoard = new GameBoard();
 
 		Canvas canvas = new Canvas(GameBoard.COLS * GameBoard.BLOCK_SIZE + 180, GameBoard.ROWS * GameBoard.BLOCK_SIZE);
 		// create graphics
 		GraphicsContext gContext = canvas.getGraphicsContext2D();
 		root.getChildren().add(canvas);
 
-		Random random = new Random();
-
-		// hold current piece
-		final Tetromino[] currentPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
-		// hold next piece
-		final Tetromino[] nextPiece = { new Tetromino(random.nextInt(Tetromino.SHAPES.length)) };
-
 		// Game loop
 		final long[] lastUpdate = { 0 };
-		// final double dropInterval = 0.5e9; // 0.5 seconds in nanoseconds
+		
+		//initialization
+		gameBoard = new GameBoard();
+		currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+		nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
+		holdPiece[0] = null;
 
-		final int[] score = { 0 }; // score counter
-		final boolean[] gameOver = { false }; // game over flag
-		final int[] level = { 1 }; // level tracker
-		final int[] linesCleared = { 0 };
-
-		// hold piece to allow switching
-		final Tetromino[] holdPiece = { null };
-		final boolean[] holdUsedPiece = { false }; // to prevent multiple holds per piece
-
-		// to monitor highscores
-		final boolean[] highScoreSaved = { false };
-		final boolean[] showCongrats = { false };
 
 		/*
 		 * AnimationTimer: calls handle(long new) ~ 60 fps. "now" is in nanoseconds;
@@ -91,6 +157,9 @@ public class Main extends Application {
 					// dynamic drop interval based on level
 					long currentInterval = Math.max(100_000_000, 500_000_000 - (level[0] - 1) * 50_000_000);
 
+					// play background music
+					soundManager.playMusic();
+
 					// auto fall bricks
 					if (now - lastUpdate[0] >= currentInterval) {
 						int newRow = currentPiece[0].getRow() + 1;
@@ -103,6 +172,7 @@ public class Main extends Application {
 
 							// should count the cleared lines of the fitted pieaces from the bottom
 							int cleared = gameBoard.clearFullLines();
+
 							// add scores based on the lines cleared
 							if (cleared > 0) {
 								switch (cleared) {
@@ -114,11 +184,16 @@ public class Main extends Application {
 
 								// track total lines
 								linesCleared[0] += cleared;
+								// play sound when a line is cleared
+								soundManager.playLineClearSound();
 
 								// level up every 10 lines
 								if (linesCleared[0] >= level[0] * 10) {
 									level[0]++;
 									lastUpdate[0] = now - currentInterval; // new speed kicks in immediately
+
+									// play level up sound
+									soundManager.playLevelUpSound();
 								}
 							}
 
@@ -139,8 +214,18 @@ public class Main extends Application {
 									if (score[0] > currentHighest) {
 										// draw the message
 										showCongrats[0] = true;
+
+										// play high score music
+										soundManager.playHighScoreSound();
+									} else {
+										// play only game over sound
+										soundManager.playGameOverSound();
 									}
-//									add score to the list
+
+									// stop background music
+									soundManager.stopMusic();
+
+									// add score to the list
 									highScoreManager.addScores(score[0]);
 									highScoreSaved[0] = true;
 								}
@@ -178,25 +263,36 @@ public class Main extends Application {
 
 				// draw the SCORE, LEVEL & LINES CLEARED text
 				gContext.setFill(Color.YELLOW);
-				gContext.setFont(new Font("Impact", 20));
+				gContext.setFont(new Font("Impact", 18));
 				gContext.fillText("Score: " + score[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 40);
 				gContext.fillText("Level: " + level[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 70);
 				gContext.fillText("Lines Cleared: " + linesCleared[0], GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 100);
 
 				// draw the HIGHSCORE list
+				gContext.setFill(Color.ANTIQUEWHITE);
+				gContext.setFont(new Font("Impact", 18));
+				gContext.fillText("High Scores: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 400);
+				
 				gContext.setFill(Color.GOLDENROD);
-				gContext.setFont(new Font("Impact", 20));
-				gContext.fillText("High Scores: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 380);
-
 				List<Integer> highScores = highScoreManager.getTopScores();
 				for (int i = 0; i < 5; i++) {
 					int value = (i < highScores.size() ? highScores.get(i) : 0);
-					gContext.fillText((i + 1) + ". " + value, GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 410 + i * 20);
+					gContext.fillText((i + 1) + ". " + value, GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 430 + i * 20);
 				}
+				
+				// draw the INSTRUCTION list
+				gContext.setFill(Color.ANTIQUEWHITE);
+				gContext.setFont(new Font("Impact", 18));
+				gContext.fillText("How To Play: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 550);
+				gContext.setFill(Color.GOLDENROD);
+				gContext.fillText("SPACE to Pause.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 570);
+				gContext.fillText("X for hard drop.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 590);
+				gContext.fillText("'UP' change piece pos.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 610);
+
 
 				// NEXT PIECE PREVIEW
 				gContext.setFill(Color.ANTIQUEWHITE);
-				gContext.setFont(new Font("Impact", 20));
+				gContext.setFont(new Font("Impact", 18));
 				gContext.fillText("Next Tetromino: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 150);
 
 				// Draw the next piece centered in 4x4 grid
@@ -334,11 +430,10 @@ public class Main extends Application {
 
 							double msgWidth = congratsText.getLayoutBounds().getWidth();
 							gContext.fillText(congratsMsg, (canvasWidth - msgWidth) / 2, canvasHeight / 2 - 100);
-							
 
 						}
 					}
-					
+
 				}
 			}
 		};
@@ -394,32 +489,37 @@ public class Main extends Application {
 			// restart game
 			case R -> {
 				if (gameOver[0]) {
-					//clear board & gameplay state
+					// clear board & gameplay state
 					gameBoard.clearGame();
 					score[0] = 0;
 					linesCleared[0] = 0;
 					level[0] = 1;
-					
-//					reset game pieces
+
+					// reset game pieces
 					currentPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
 					nextPiece[0] = new Tetromino(random.nextInt(Tetromino.SHAPES.length));
-					
-					//timing + flags 
+
+					// timing + flags
 					lastUpdate[0] = 0;
 					gameOver[0] = false;
 					paused = false;
-					
+
 					// HOLD for switching pieces needs reset
 					holdPiece[0] = null;
 					holdUsedPiece[0] = false;
-					
-					//highscore & related message
-					highScoreSaved[0] = false; //allow saving on next run
+
+					// highscore & related message
+					highScoreSaved[0] = false; // allow saving on next run
 					showCongrats[0] = false;
-					
-					//reset blink timer
+
+					// reset blink timer
 					lastBlinkTime = 0;
 					showPrompt = true;
+
+					// stop sound
+					soundManager.stopHighScoreSound();
+					soundManager.stopGameOverSound();
+
 				}
 			}
 
@@ -427,6 +527,9 @@ public class Main extends Application {
 			case P, SPACE -> {
 				if (!gameOver[0]) {
 					paused = !paused; // toggle pause/resume
+
+					// pause the game music
+					soundManager.pauseMusic();
 				}
 			}
 
@@ -453,7 +556,14 @@ public class Main extends Application {
 				holdUsedPiece[0] = true;
 			}
 
+			// hard drop Tetrominos
+			case X -> {
+				if (!gameOver[0] && !paused) {
+					hardDrop(currentPiece[0]);
+				}
 			}
+
+			} // end for the switch
 		});
 
 		primaryStage.setTitle("Tetris");

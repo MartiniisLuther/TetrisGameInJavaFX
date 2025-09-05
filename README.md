@@ -32,18 +32,18 @@ This project is part of my practice to get comfortable with Java, Git, and GitHu
 
 
 ### Project Structure
+```
+TetrisGameInJavaFX/
+├── src/
+│   └── tetris/
+│       ├── Main.java
+│       ├── Board.java
+│       ├── Piece.java
+│       └── ...
+├── .gitignore
+├── README.md
 
- TetrisGameInJavaFX/
-
- src/			     # Source code
- | |--- tetris/		     # Game package
- |      |----- Main.java
- |      |----- Board.java
- |	|----- Piece.java
- |	|----- ...
- |
- |--- .gitignore	     # Git ignored files
- |--- README.md              # Project description
+```
 
 
 
