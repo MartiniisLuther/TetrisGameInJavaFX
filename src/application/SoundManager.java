@@ -12,7 +12,7 @@ public class SoundManager {
 	private AudioClip gameOverSound;
 	private AudioClip highScoreSound;
 	private AudioClip levelUpSound;
-	private AudioClip hardDropSound;
+	private AudioClip hardDropSound; 
 
 	// constructor to manage the sounds
 	public SoundManager() {

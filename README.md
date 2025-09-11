@@ -16,10 +16,18 @@ This project is part of my practice to get comfortable with Java, Git, and GitHu
 ## Getting Started 
 
 ### Prerequisites
-- Java 11+ (JDK installed)
-- JavaFX SDK (added to your project build path) 
-- An IDE like **Eclipse** or **IntelliJ IDEA** 
+- **Java 11+** (JDK installed and set as your project JRE)
+- **JavaFX SDK**  
+  - Download the matching JavaFX SDK (e.g. 21.x) and unzip it.  
+  - Add the `lib` folder to your project’s *Modulepath* (not just Classpath) in Eclipse/IntelliJ.
+  - When running the app, include VM arguments so the JVM can locate the modules, e.g.:
 
+    ```
+    --module-path /absolute/path/to/javafx-sdk-21/lib --add-modules javafx.controls,javafx.fxml
+    ```
+
+    Adjust the path and modules list to match your setup.
+- An IDE such as **Eclipse** or **IntelliJ IDEA**
 
 ### Running the Game
  
@@ -44,7 +52,6 @@ TetrisGameInJavaFX/
 ├── README.md
 
 ```
-
 
 
 #### Goals

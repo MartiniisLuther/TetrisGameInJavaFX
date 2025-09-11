@@ -271,7 +271,7 @@ public class Main extends Application {
 				// draw the HIGHSCORE list
 				gContext.setFill(Color.ANTIQUEWHITE);
 				gContext.setFont(new Font("Impact", 18));
-				gContext.fillText("High Scores: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 400);
+				gContext.fillText("Top 5 Scores: ", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 400);
 				
 				gContext.setFill(Color.GOLDENROD);
 				List<Integer> highScores = highScoreManager.getTopScores();
