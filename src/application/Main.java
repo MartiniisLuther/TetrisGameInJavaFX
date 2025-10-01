@@ -288,6 +288,7 @@ public class Main extends Application {
 				gContext.fillText("SPACE to Pause.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 570);
 				gContext.fillText("X for hard drop.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 590);
 				gContext.fillText("'UP' change piece pos.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 610);
+				gContext.fillText("'M' to Mute sound.", GameBoard.COLS * GameBoard.BLOCK_SIZE + 20, 630);
 
 
 				// NEXT PIECE PREVIEW
@@ -561,6 +562,11 @@ public class Main extends Application {
 				if (!gameOver[0] && !paused) {
 					hardDrop(currentPiece[0]);
 				}
+			}
+			
+			// mute/unmute all sounds
+			case M -> {
+				soundManager.toggleMute();
 			}
 
 			} // end for the switch

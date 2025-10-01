@@ -13,6 +13,7 @@ public class SoundManager {
 	private AudioClip highScoreSound;
 	private AudioClip levelUpSound;
 	private AudioClip hardDropSound; 
+    private boolean muted = false;
 
 	// constructor to manage the sounds
 	public SoundManager() {
@@ -22,7 +23,7 @@ public class SoundManager {
 			Media bgMusic = new Media((Paths.get(bgMusicPath)).toUri().toString());
 			bgMusicPlayer = new MediaPlayer(bgMusic);
 			bgMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE); // loop
-			bgMusicPlayer.setVolume(0.3);
+			bgMusicPlayer.setVolume(0.6);
 
 			// clear line sound
 			String lineClearPath = "sounds/Stage_Clear.mp3";
@@ -52,13 +53,13 @@ public class SoundManager {
 			hardDropSound.setVolume(0.8);
 
 		} catch (Exception e) {
-			System.out.println("Error loading souns: " + e.getMessage());
+			System.out.println("Error loading sounds: \n " + e.getMessage());
 		}
 	}
 
 	// play sound
 	public void playMusic() {
-		if (bgMusicPlayer != null) {
+        if (bgMusicPlayer != null && !muted) {
 			bgMusicPlayer.play();
 		}
 	}
@@ -79,21 +80,21 @@ public class SoundManager {
 
 	// play clear line music
 	public void playLineClearSound() {
-		if (lineClearSound != null) {
+        if (lineClearSound != null && !muted) {
 			lineClearSound.play();
 		}
 	}
 
 	// level up sound
 	public void playLevelUpSound() {
-		if (levelUpSound != null) {
+        if (levelUpSound != null && !muted) {
 			levelUpSound.play();
 		}
 	}
 
 	// playgame over sound
 	public void playGameOverSound() {
-		if (gameOverSound != null) {
+        if (gameOverSound != null && !muted) {
 			gameOverSound.play();
 		}
 	}
@@ -107,7 +108,7 @@ public class SoundManager {
 
 	// highscore sound
 	public void playHighScoreSound() {
-		if (highScoreSound != null) {
+        if (highScoreSound != null && !muted) {
 			highScoreSound.play();
 		}
 	}
@@ -121,9 +122,27 @@ public class SoundManager {
 	
 	//play hard drop sound
 	public void playHardDropSound() {
-		if (hardDropSound != null) {
+        if (hardDropSound != null && !muted) {
 			hardDropSound.play();
 		}
 	}
+
+	
+    // toggle mute state for all sounds
+    public void toggleMute() {
+        muted = !muted;
+        if (bgMusicPlayer != null) {
+            bgMusicPlayer.setMute(muted);
+        }
+        if (muted) {
+            // ensure currently looping clips are stopped
+            stopHighScoreSound();
+            stopGameOverSound();
+        }
+    }
+
+    public boolean isMuted() {
+        return muted;
+    }
 
 }
