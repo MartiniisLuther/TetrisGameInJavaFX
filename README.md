@@ -43,15 +43,34 @@ This project is part of my practice to get comfortable with Java, Git, and GitHu
 ```
 TetrisGameInJavaFX/
 ├── src/
-│   └── tetris/
-│       ├── Main.java
-│       ├── Board.java
-│       ├── Piece.java
-│       └── ...
+│   ├── application/
+│   │   ├── Main.java
+│   │   ├── GameBoard.java
+│   │   ├── Tetromino.java
+│   │   ├── HighScoreManager.java
+│   │   └── SoundManager.java
+│   └── screenshots/
+│       ├── gameover_screen.png
+│       └── pause_screen.png
+├── sounds/
+│   ├── Title.mp3
+│   ├── Stage_Clear.mp3
+│   ├── Game_Over.mp3
+│   ├── new_high_score.mp3
+│   ├── game_level-up.mp3
+│   └── Hard_Drop.mp3
+├── highscores.txt
 ├── .gitignore
 ├── README.md
 
 ```
+
+## 🎮 Gameplay Preview
+
+Here’s a sample of the game in action:
+
+![Game Over Screen](src/screenshots/gameover_screen.png)
+![Pause Screen](src/screenshots/pause_screen.png)
 
 
 #### Goals
