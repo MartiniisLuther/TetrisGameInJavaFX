@@ -71,7 +71,7 @@ Here’s a sample of the game in action:
 
 | Gameplay Screen                | Pause Screen                | Game Over Screen            | Game Over - New High Score
 |-------------------------------|-----------------------------|-----------------------------|-----------------------------|
-| ![Gameplay](src/screenshots/gameplay_screen.png) | ![Pause Screen](src/screenshots/pause_screen.png) | ![Game Over](src/screenshots/gameover_screen.png) | ! [New High] (src/screenshots/gameover_new_high.png) |
+| ![Gameplay](src/screenshots/gameplay_screen.png) | ![Pause Screen](src/screenshots/pause_screen.png) | ![Game Over](src/screenshots/gameover_screen.png) | ![New High](src/screenshots/gameover_new_high.png) |
 
 
 #### Goals
